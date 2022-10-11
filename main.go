@@ -69,7 +69,7 @@ var (
 			Shorthand: "w",
 			Default:   1,
 			Usage:     "Threshold for warning status",
-			Value:     &plugin.ThresholdCritical,
+			Value:     &plugin.ThresholdWarning,
 		},
 		&sensu.PluginConfigOption[int]{
 			Path:      "threshold-direction",
