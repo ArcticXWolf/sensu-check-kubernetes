@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+sensu-check-kubernetes
 
 # Test binary, build with `go test -c`
 *.test
