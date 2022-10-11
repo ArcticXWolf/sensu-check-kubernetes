@@ -3,8 +3,6 @@
 
 # Sensu Go Kubernetes Status Check
 
-TODO: Table of Contents
-
 - [Overview](#overview)
 - [Usage examples](#usage-examples)
 - [Configuration](#configuration)
@@ -16,9 +14,7 @@ TODO: Table of Contents
 
 ## Overview
 
-If you're writing or updating a plugin's README, review the Sensu Community [plugin README style guide](https://github.com/sensu-plugins/community/blob/master/PLUGIN_STYLEGUIDE.md) for content suggestions and guidance.
-
-TODO: Write an overview of the plugin's functionality. 
+Work in progress, do not use yet
 
 ## Configuration
 
