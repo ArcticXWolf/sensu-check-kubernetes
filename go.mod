@@ -1,6 +1,6 @@
 module github.com/ArcticXWolf/sensu-check-kubernetes
 
-go 1.14
+go 1.19
 
 require (
 	github.com/sensu/sensu-go/types v0.11.0 // indirect
