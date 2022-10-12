@@ -7,18 +7,13 @@
 - [Usage examples](#usage-examples)
 - [Configuration](#configuration)
   - [Asset registration](#asset-registration)
-  - [Asset configuration](#asset-configuration)
   - [Check configuration](#resource-configuration)
 - [Functionality](#functionality)
 - [Installation from source and contributing](#installation-from-source-and-contributing)
 
 ## Overview
 
-Sensu-Check-Kubernetes is a Sensu Go Asset that aims to replace the old ruby
-asset
-[sensu-plugins-kubernetes](https://bonsai.sensu.io/assets/sensu-plugins/sensu-plugins-kubernetes).
-Currently it can count any Kubernetes resource. See usage examples for drop-in replacements of 
-[sensu-plugins-kubernetes](https://bonsai.sensu.io/assets/sensu-plugins/sensu-plugins-kubernetes).
+Sensu-Check-Kubernetes is a Sensu Go Asset that aims to replace the old ruby asset [sensu-plugins-kubernetes](https://bonsai.sensu.io/assets/sensu-plugins/sensu-plugins-kubernetes). Currently it can count any Kubernetes resource. See usage examples for drop-in replacements of [sensu-plugins-kubernetes](https://bonsai.sensu.io/assets/sensu-plugins/sensu-plugins-kubernetes).
 
 ## Usage examples
 
