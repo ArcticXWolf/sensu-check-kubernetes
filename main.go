@@ -23,6 +23,8 @@ type Config struct {
 	ThresholdWarning   int
 	ThresholdCritical  int
 	ThresholdDirection int
+	LabelSelector      string
+	FieldSelector      string
 }
 
 var (
@@ -80,6 +82,24 @@ var (
 			Usage:     "Direction of the thresholds (-1 = critical if metric_value < threshold-critical, 1 = critical if value > threshold-critical, 0 = critical if value != threshold-critical). A zero value disables warnings.",
 			Value:     &plugin.ThresholdDirection,
 		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "label-selector",
+			Env:       "",
+			Argument:  "label-selector",
+			Shorthand: "l",
+			Default:   "",
+			Usage:     "Label selector to filter resources",
+			Value:     &plugin.LabelSelector,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "field-selector",
+			Env:       "",
+			Argument:  "field-selector",
+			Shorthand: "f",
+			Default:   "",
+			Usage:     "Field selector to filter resources",
+			Value:     &plugin.FieldSelector,
+		},
 	}
 )
 
@@ -93,35 +113,40 @@ func checkArgs(event *types.Event) (int, error) {
 }
 
 func executeCheck(event *types.Event) (int, error) {
-	amount, err := getNumResources(plugin.Namespace, plugin.ResourceKind, metav1.ListOptions{})
+	fmt.Printf("ResourceKind: %s", plugin.ResourceKind)
+	fmt.Printf("Namespace: %s", plugin.Namespace)
+	fmt.Printf("LabelSelector: %s", plugin.LabelSelector)
+	fmt.Printf("FieldSelector: %s", plugin.FieldSelector)
+	fmt.Printf("ThresholdCritical: %d", plugin.ThresholdCritical)
+	fmt.Printf("ThresholdWarning: %d", plugin.ThresholdWarning)
+	fmt.Printf("ThresholdDirection: %d", plugin.ThresholdDirection)
+
+	amount, err := getNumResources(plugin.Namespace, plugin.ResourceKind, metav1.ListOptions{LabelSelector: plugin.LabelSelector, FieldSelector: plugin.FieldSelector})
 	if err != nil {
 		return sensu.CheckStateCritical, err
 	}
-
-	fmt.Printf("Found %d resources of type %s in namespace %s", amount, plugin.ResourceKind, plugin.Namespace)
+	fmt.Printf("AmountResourcesFound: %d", amount)
 
 	responseCode, err := getResponseCodeFromThresholds(amount, plugin.ThresholdCritical, plugin.ThresholdWarning, plugin.ThresholdDirection)
 	if err != nil {
 		return sensu.CheckStateCritical, err
 	}
+	fmt.Printf("Result: %d", responseCode)
 
 	return responseCode, nil
 }
 
 func getNumResources(namespace string, resourcekind string, opts metav1.ListOptions) (int, error) {
-	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return -1, err
 	}
 
-	// creates the client
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return -1, err
 	}
 
-	// get the discovery client
 	discoveryclient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return -1, err

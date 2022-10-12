@@ -17,18 +17,14 @@ builds:
       - arm
       - arm64
     goarm:
-      - 5
-      - 6
       - 7
     targets:
+      - darwin_386
       - darwin_amd64
       - linux_386
       - linux_amd64
-      - linux_arm_5
-      - linux_arm_6
       - linux_arm_7
       - linux_arm64
-      - windows_386
       - windows_amd64
 
 checksum:
