@@ -19,7 +19,6 @@ builds:
     goarm:
       - 7
     targets:
-      - darwin_386
       - darwin_amd64
       - linux_386
       - linux_amd64
