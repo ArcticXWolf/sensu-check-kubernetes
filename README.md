@@ -55,6 +55,19 @@ By default (i.e. with no flags given) it counts the amount of Pods
 the amount of pods is zero (`ThresholdDirection = -1, ThresholdCritical = 1`).
 Otherwise it returns Ok.
 
+### Amount of pods running
+
+This check returns Ok if the number of running pods in namespace "default" is exactly 5 and Critical otherwise.
+
+```
+sensu-check-kubernetes 
+  --resource-kind "Pod"
+  --namespace "default"
+  --field-selector "status.phase=Running"
+  --threshold-direction 0
+  --threshold-critical 5
+```
+
 ### Replacements for sensu-plugins-kubernetes
 
 
