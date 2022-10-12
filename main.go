@@ -113,25 +113,25 @@ func checkArgs(event *types.Event) (int, error) {
 }
 
 func executeCheck(event *types.Event) (int, error) {
-	fmt.Printf("ResourceKind: %s", plugin.ResourceKind)
-	fmt.Printf("Namespace: %s", plugin.Namespace)
-	fmt.Printf("LabelSelector: %s", plugin.LabelSelector)
-	fmt.Printf("FieldSelector: %s", plugin.FieldSelector)
-	fmt.Printf("ThresholdCritical: %d", plugin.ThresholdCritical)
-	fmt.Printf("ThresholdWarning: %d", plugin.ThresholdWarning)
-	fmt.Printf("ThresholdDirection: %d", plugin.ThresholdDirection)
+	fmt.Printf("ResourceKind: %s\n", plugin.ResourceKind)
+	fmt.Printf("Namespace: %s\n", plugin.Namespace)
+	fmt.Printf("LabelSelector: %s\n", plugin.LabelSelector)
+	fmt.Printf("FieldSelector: %s\n", plugin.FieldSelector)
+	fmt.Printf("ThresholdCritical: %d\n", plugin.ThresholdCritical)
+	fmt.Printf("ThresholdWarning: %d\n", plugin.ThresholdWarning)
+	fmt.Printf("ThresholdDirection: %d\n", plugin.ThresholdDirection)
 
 	amount, err := getNumResources(plugin.Namespace, plugin.ResourceKind, metav1.ListOptions{LabelSelector: plugin.LabelSelector, FieldSelector: plugin.FieldSelector})
 	if err != nil {
 		return sensu.CheckStateCritical, err
 	}
-	fmt.Printf("AmountResourcesFound: %d", amount)
+	fmt.Printf("AmountResourcesFound: %d\n", amount)
 
 	responseCode, err := getResponseCodeFromThresholds(amount, plugin.ThresholdCritical, plugin.ThresholdWarning, plugin.ThresholdDirection)
 	if err != nil {
 		return sensu.CheckStateCritical, err
 	}
-	fmt.Printf("Result: %d", responseCode)
+	fmt.Printf("Result: %d\n", responseCode)
 
 	return responseCode, nil
 }
