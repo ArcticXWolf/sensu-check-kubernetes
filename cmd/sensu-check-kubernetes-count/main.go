@@ -2,17 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
+	pkg "github.com/ArcticXWolf/sensu-check-kubernetes/pkg"
 	"github.com/sensu/sensu-go/types"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
 )
 
 // Config represents the check plugin config.
@@ -127,7 +122,7 @@ func executeCheck(event *types.Event) (int, error) {
 	}
 	fmt.Printf("AmountResourcesFound: %d\n", amount)
 
-	responseCode, err := getResponseCodeFromThresholds(amount, plugin.ThresholdCritical, plugin.ThresholdWarning, plugin.ThresholdDirection)
+	responseCode, err := pkg.GetResponseCodeFromThresholds(amount, plugin.ThresholdCritical, plugin.ThresholdWarning, plugin.ThresholdDirection)
 	if err != nil {
 		return sensu.CheckStateCritical, err
 	}
@@ -137,71 +132,20 @@ func executeCheck(event *types.Event) (int, error) {
 }
 
 func getNumResources(namespace string, resourcekind string, opts metav1.ListOptions) (int, error) {
-	config, err := rest.InClusterConfig()
+	api_client, err := pkg.GetKubeApiClient()
 	if err != nil {
 		return -1, err
 	}
 
-	client, err := dynamic.NewForConfig(config)
+	mapping, err := pkg.GetResourceMapping(resourcekind)
 	if err != nil {
 		return -1, err
 	}
 
-	discoveryclient, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		return -1, err
-	}
-
-	groupResources, err := restmapper.GetAPIGroupResources(discoveryclient)
-	if err != nil {
-		return -1, err
-	}
-
-	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-
-	mapping, err := mapper.RESTMapping(schema.ParseGroupKind(resourcekind))
-	if err != nil {
-		return -1, err
-	}
-
-	list, err := client.Resource(mapping.Resource).Namespace(namespace).List(context.TODO(), opts)
+	list, err := api_client.Resource(mapping.Resource).Namespace(namespace).List(context.TODO(), opts)
 	if err != nil {
 		return -1, err
 	}
 
 	return len(list.Items), nil
-}
-
-func getResponseCodeFromThresholds(value int, thresholdCritical int, thresholdWarning int, thresholdDirection int) (int, error) {
-	if thresholdDirection == 0 {
-		if value == thresholdCritical {
-			return sensu.CheckStateOK, nil
-		} else {
-			return sensu.CheckStateCritical, nil
-		}
-	} else if thresholdDirection < 0 {
-		if thresholdWarning < thresholdCritical {
-			return sensu.CheckStateCritical, errors.New("threshold direction is < 0, but warning threshold is bigger than critical threshold")
-		}
-
-		if value < thresholdCritical {
-			return sensu.CheckStateCritical, nil
-		} else if value < thresholdWarning {
-			return sensu.CheckStateWarning, nil
-		} else {
-			return sensu.CheckStateOK, nil
-		}
-	} else {
-		if thresholdWarning > thresholdCritical {
-			return sensu.CheckStateCritical, errors.New("threshold direction is > 0, but warning threshold is less than critical threshold")
-		}
-
-		if value > thresholdCritical {
-			return sensu.CheckStateCritical, nil
-		} else if value > thresholdWarning {
-			return sensu.CheckStateWarning, nil
-		} else {
-			return sensu.CheckStateOK, nil
-		}
-	}
 }
