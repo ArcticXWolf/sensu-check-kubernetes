@@ -2,22 +2,27 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	pkg "github.com/ArcticXWolf/sensu-check-kubernetes/pkg"
+	"github.com/itchyny/gojq"
 	"github.com/sensu/sensu-go/types"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // Config represents the check plugin config.
 type Config struct {
 	sensu.PluginConfig
-	Namespace     string
-	ResourceKind  string
-	ResourceName  string
-	LabelSelector string
-	FieldSelector string
+	Namespace       string
+	ResourceKind    string
+	ResourceName    string
+	LabelSelector   string
+	FieldSelector   string
+	Query           string
+	ResultAssertion string
 }
 
 var (
@@ -49,22 +54,31 @@ var (
 			Value:     &plugin.ResourceKind,
 		},
 		&sensu.PluginConfigOption[string]{
-			Path:      "label-selector",
+			Path:      "resource-name",
 			Env:       "",
-			Argument:  "label-selector",
-			Shorthand: "l",
-			Default:   "",
-			Usage:     "Label selector to filter resources",
-			Value:     &plugin.LabelSelector,
+			Argument:  "resource-name",
+			Shorthand: "r",
+			Default:   "Pod",
+			Usage:     "Resource to query (e.g. Pod)",
+			Value:     &plugin.ResourceName,
 		},
 		&sensu.PluginConfigOption[string]{
-			Path:      "field-selector",
+			Path:      "query",
 			Env:       "",
-			Argument:  "field-selector",
-			Shorthand: "f",
+			Argument:  "query",
+			Shorthand: "q",
 			Default:   "",
-			Usage:     "Field selector to filter resources",
-			Value:     &plugin.FieldSelector,
+			Usage:     "Query on resource json in jq format",
+			Value:     &plugin.Query,
+		},
+		&sensu.PluginConfigOption[string]{
+			Path:      "assertion",
+			Env:       "",
+			Argument:  "assertion",
+			Shorthand: "a",
+			Default:   "",
+			Usage:     "Result of jq query to compare against",
+			Value:     &plugin.ResultAssertion,
 		},
 	}
 )
@@ -79,31 +93,64 @@ func checkArgs(event *types.Event) (int, error) {
 }
 
 func executeCheck(event *types.Event) (int, error) {
-
-	amount, err := getNumResources(plugin.Namespace, plugin.ResourceKind, metav1.ListOptions{LabelSelector: plugin.LabelSelector, FieldSelector: plugin.FieldSelector})
+	result, err := getResource(plugin.Namespace, plugin.ResourceKind, plugin.ResourceName)
 	if err != nil {
 		return sensu.CheckStateCritical, err
 	}
-	fmt.Printf("AmountResourcesFound: %d\n", amount)
 
-	return sensu.CheckStateOK, nil
+	query, err := gojq.Parse(plugin.Query)
+	if err != nil {
+		return sensu.CheckStateCritical, err
+	}
+
+	iter := query.Run(result.Object)
+
+	check := true
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+
+		if err, ok := v.(error); ok {
+			fmt.Println(err)
+			break
+		}
+		marsh, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		fmt.Printf("Found: %s\n", marsh)
+		if plugin.ResultAssertion != string(marsh) {
+			check = false
+		}
+	}
+
+	if check {
+		fmt.Println("Result: OK")
+		return sensu.CheckStateOK, nil
+	}
+	fmt.Println("Result: Critical")
+	return sensu.CheckStateCritical, nil
 }
 
-func getNumResources(namespace string, resourcekind string, opts metav1.ListOptions) (int, error) {
+func getResource(namespace string, resourcekind string, resourcename string) (*unstructured.Unstructured, error) {
 	api_client, err := pkg.GetKubeApiClient()
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
 
 	mapping, err := pkg.GetResourceMapping(resourcekind)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
 
-	list, err := api_client.Resource(mapping.Resource).Namespace(namespace).Get(context.TODO())
+	result, err := api_client.Resource(mapping.Resource).Namespace(namespace).Get(context.TODO(), resourcename, metav1.GetOptions{})
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
 
-	return len(list.Items), nil
+	return result, nil
 }

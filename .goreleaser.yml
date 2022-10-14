@@ -1,6 +1,6 @@
 builds:
   # List of builds
-  - # First Build
+  - id: sensu-check-kubernetes-count
     env:
       - CGO_ENABLED=0
     main: cmd/sensu-check-kubernetes-count/main.go
@@ -25,7 +25,7 @@ builds:
       - linux_arm_7
       - linux_arm64
       - windows_amd64
-  - # Second Build
+  - id: sensu-check-kubernetes-compare
     env:
       - CGO_ENABLED=0
     main: cmd/sensu-check-kubernetes-compare/main.go
