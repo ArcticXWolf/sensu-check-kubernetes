@@ -18,8 +18,50 @@ Sensu-Check-Kubernetes is a Sensu Go Asset that aims to replace the old ruby ass
 ## Usage examples
 
 ```
-$
+$ sensu-check-kubernetes-metrics --help
+Kubernetes checks for Sensu
 
+Usage:
+  sensu-check-kubernetes-metrics [flags]
+  sensu-check-kubernetes-metrics [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  version     Print the version number of this plugin
+
+Flags:
+  -f, --field-selector string   Field selector to filter resources
+  -h, --help                    help for sensu-check-kubernetes-metrics
+  -l, --label-selector string   Label selector to filter resources
+  -n, --namespace string        Name of the namespace to query from (leave empty to check clusterwide)
+  -t, --resource-kind string    Resource to query (e.g. Pod) (default "Pod")
+
+Use "sensu-check-kubernetes-metrics [command] --help" for more information about a command.
+```
+
+```
+$ sensu-check-kubernetes-query --help
+Kubernetes checks for Sensu
+
+Usage:
+  sensu-check-kubernetes-query [flags]
+  sensu-check-kubernetes-query [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  version     Print the version number of this plugin
+
+Flags:
+  -a, --assertion string       Result of jq query to compare against
+  -h, --help                   help for sensu-check-kubernetes-query
+  -n, --namespace string       Name of the namespace to query from (leave empty to check clusterwide)
+  -q, --query string           Query on resource json in jq format
+  -t, --resource-kind string   Resource to query (e.g. Pod) (default "Pod")
+  -r, --resource-name string   Resource to query (e.g. Pod) (default "Pod")
+
+Use "sensu-check-kubernetes-query [command] --help" for more information about a command.
 ```
 
 ## Configuration
@@ -35,7 +77,48 @@ If you're using an earlier version of sensuctl, you can find the asset on the [B
 ### Check configuration
 
 ```yml
-TODO
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: check-kubeapi-pods-query
+spec:
+  command: >-
+    sensu-check-kubernetes-query
+    --resource-kind "deployment.apps"
+    --namespace "default"
+    --resource-name "testdeployment"
+    --query ".status.readyReplicas"
+    --assertion "1"
+  cron: "* * * * *"
+  publish: true
+  round_robin: true
+  runtime_assets:
+    - ArcticXWolf/sensu-check-kubernetes
+  
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: check-kubeapi-pods-metrics
+spec:
+  command: >-
+    sensu-check-kubernetes-metrics
+    --resource-kind "Pod"
+    --namespace "default"
+  cron: "* * * * *"
+  publish: true
+  round_robin: true
+  runtime_assets:
+    - ArcticXWolf/sensu-check-kubernetes
+  output_metric_format: prometheus_text
+  output_metric_thresholds:
+    - name: kubernetes_query_resources_total
+      null_status: 2
+      thresholds:
+        - min: "1"
+          max: ""
+          status: 2
 ```
 
 ### Functionality
@@ -68,6 +151,8 @@ rules:
     - pods
   verbs:
     - list
+    - get
+  # add more rules as needed (for example for statefulsets.apps)
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
