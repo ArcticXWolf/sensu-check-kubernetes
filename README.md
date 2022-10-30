@@ -13,69 +13,13 @@
 
 ## Overview
 
-Sensu-Check-Kubernetes is a Sensu Go Asset that aims to replace the old ruby asset [sensu-plugins-kubernetes](https://bonsai.sensu.io/assets/sensu-plugins/sensu-plugins-kubernetes). Currently it can count any Kubernetes resource. See usage examples for drop-in replacements of [sensu-plugins-kubernetes](https://bonsai.sensu.io/assets/sensu-plugins/sensu-plugins-kubernetes).
+Sensu-Check-Kubernetes is a Sensu Go Asset that aims to replace the old ruby asset [sensu-plugins-kubernetes](https://bonsai.sensu.io/assets/sensu-plugins/sensu-plugins-kubernetes). Currently it provides one binary (`sensu-check-kubernetes-metrics`) which provides generic metrics about a kubernetes query (resourcekind, label/field-selector) and one binary (`sensu-check-kubernetes-query`) which queries JSON about a resource from the kubeapi, transforms it via a user-specified `jq` query and compares that against a user-specified assertion.
 
 ## Usage examples
 
 ```
-$ ./sensu-check-kubernetes --help
-Kubernetes checks for Sensu
+$
 
-Usage:
-  sensu-check-kubernetes [flags]
-  sensu-check-kubernetes [command]
-
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  version     Print the version number of this plugin
-
-Flags:
-  -f, --field-selector string     Field selector to filter resources
-  -h, --help                      help for sensu-check-kubernetes
-  -l, --label-selector string     Label selector to filter resources
-  -n, --namespace string          Name of the namespace to query from (leave empty to check clusterwide)
-  -t, --resource-kind string      Resource to query (e.g. Pod) (default "Pod")
-  -c, --threshold-critical int    Threshold for critical status (default 1)
-      --threshold-direction int   Direction of the thresholds (-1 = critical if metric_value < threshold-critical, 1 = critical if value > threshold-critical, 0 = critical if value != threshold-critical). A zero value disables warnings. (default -1)
-  -w, --threshold-warning int     Threshold for warning status (default 1)
-
-Use "sensu-check-kubernetes [command] --help" for more information about a command.
-```
-
-### Default values
-
-By default (i.e. with no flags given) it counts the amount of Pods
-(`ResourceKind = Pod`) clusterwide (`Namespace = ""`) and returns critical, if
-the amount of pods is zero (`ThresholdDirection = -1, ThresholdCritical = 1`).
-Otherwise it returns Ok.
-
-### Amount of pods running
-
-This check returns Ok if the number of running pods in namespace "default" is exactly 5 and Critical otherwise.
-
-```
-sensu-check-kubernetes 
-  --resource-kind "Pod"
-  --namespace "default"
-  --field-selector "status.phase=Running"
-  --threshold-direction 0
-  --threshold-critical 5
-```
-
-### Replacements for sensu-plugins-kubernetes
-
-
-#### check-kube-pods-running.rb
-
-```
-TODO
-```
-
-#### check-kube-service-available.rb
-
-```
-TODO
 ```
 
 ## Configuration
@@ -91,18 +35,7 @@ If you're using an earlier version of sensuctl, you can find the asset on the [B
 ### Check configuration
 
 ```yml
----
-type: CheckConfig
-api_version: core/v2
-metadata:
-  name: check-kubernetes-pods
-spec:
-  command: >-
-    sensu-check-kubernetes -n "default"
-  runtime_assets:
-    - ArcticXWolf/sensu-check-kubernetes
-  subscriptions:
-    - system
+TODO
 ```
 
 ### Functionality
@@ -158,7 +91,8 @@ or create an executable script from this source.
 From the local path of the sensu-check-kubernetes repository:
 
 ```
-go build -o /usr/local/bin/sensu-check-kubernetes main.go
+go build -o /usr/local/bin/sensu-check-kubernetes-metrics cmd/sensu-check-kubernetes-metrics/main.go
+go build -o /usr/local/bin/sensu-check-kubernetes-query cmd/sensu-check-kubernetes-query/main.go
 ```
 
 For more information about contributing to this plugin, see https://github.com/sensu/sensu-go/blob/master/CONTRIBUTING.md

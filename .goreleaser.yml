@@ -1,12 +1,12 @@
 builds:
   # List of builds
-  - id: sensu-check-kubernetes-count
+  - id: sensu-check-kubernetes-metrics
     env:
       - CGO_ENABLED=0
-    main: cmd/sensu-check-kubernetes-count/main.go
+    main: cmd/sensu-check-kubernetes-metrics/main.go
     ldflags: "-s -w -X github.com/sensu/sensu-plugin-sdk/version.version={{.Version}} -X github.com/sensu/sensu-plugin-sdk/version.commit={{.Commit}} -X github.com/sensu/sensu-plugin-sdk/version.date={{.Date}}"
     # Set the binary output location to bin/ so archive will comply with Sensu Go Asset structure
-    binary: bin/sensu-check-kubernetes-count
+    binary: bin/sensu-check-kubernetes-metrics
     goos:
       - darwin
       - linux
@@ -25,13 +25,13 @@ builds:
       - linux_arm_7
       - linux_arm64
       - windows_amd64
-  - id: sensu-check-kubernetes-compare
+  - id: sensu-check-kubernetes-query
     env:
       - CGO_ENABLED=0
-    main: cmd/sensu-check-kubernetes-compare/main.go
+    main: cmd/sensu-check-kubernetes-query/main.go
     ldflags: "-s -w -X github.com/sensu/sensu-plugin-sdk/version.version={{.Version}} -X github.com/sensu/sensu-plugin-sdk/version.commit={{.Commit}} -X github.com/sensu/sensu-plugin-sdk/version.date={{.Date}}"
     # Set the binary output location to bin/ so archive will comply with Sensu Go Asset structure
-    binary: bin/sensu-check-kubernetes-compare
+    binary: bin/sensu-check-kubernetes-query
     goos:
       - darwin
       - linux

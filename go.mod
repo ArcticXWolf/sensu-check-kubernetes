@@ -9,6 +9,8 @@ require (
 	k8s.io/client-go v0.25.2
 )
 
+require github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -43,6 +45,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pelletier/go-toml v1.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0
+	github.com/prometheus/common v0.37.0
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sensu/sensu-go/api/core/v2 v2.14.0 // indirect
@@ -57,7 +61,7 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.0 // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect

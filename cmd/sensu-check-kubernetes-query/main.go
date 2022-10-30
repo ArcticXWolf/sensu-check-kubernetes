@@ -28,7 +28,7 @@ type Config struct {
 var (
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
-			Name:     "sensu-check-kubernetes",
+			Name:     "sensu-check-kubernetes-query",
 			Short:    "Kubernetes checks for Sensu",
 			Keyspace: "sensu.io/plugins/sensu-check-kubernetes/config",
 		},
@@ -123,6 +123,7 @@ func executeCheck(event *types.Event) (int, error) {
 		}
 
 		fmt.Printf("Found: %s\n", marsh)
+		fmt.Printf("Assertion against: %s\n", plugin.ResultAssertion)
 		if plugin.ResultAssertion != string(marsh) {
 			check = false
 		}

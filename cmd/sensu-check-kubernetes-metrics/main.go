@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	pkg "github.com/ArcticXWolf/sensu-check-kubernetes/pkg"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/sensu/sensu-go/types"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // Config represents the check plugin config.
@@ -25,7 +27,7 @@ type Config struct {
 var (
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
-			Name:     "sensu-check-kubernetes",
+			Name:     "sensu-check-kubernetes-metrics",
 			Short:    "Kubernetes checks for Sensu",
 			Keyspace: "sensu.io/plugins/sensu-check-kubernetes/config",
 		},
@@ -49,33 +51,6 @@ var (
 			Default:   "Pod",
 			Usage:     "Resource to query (e.g. Pod)",
 			Value:     &plugin.ResourceKind,
-		},
-		&sensu.PluginConfigOption[int]{
-			Path:      "threshold-critical",
-			Env:       "",
-			Argument:  "threshold-critical",
-			Shorthand: "c",
-			Default:   1,
-			Usage:     "Threshold for critical status",
-			Value:     &plugin.ThresholdCritical,
-		},
-		&sensu.PluginConfigOption[int]{
-			Path:      "threshold-warning",
-			Env:       "",
-			Argument:  "threshold-warning",
-			Shorthand: "w",
-			Default:   1,
-			Usage:     "Threshold for warning status",
-			Value:     &plugin.ThresholdWarning,
-		},
-		&sensu.PluginConfigOption[int]{
-			Path:      "threshold-direction",
-			Env:       "",
-			Argument:  "threshold-direction",
-			Shorthand: "",
-			Default:   -1,
-			Usage:     "Direction of the thresholds (-1 = critical if metric_value < threshold-critical, 1 = critical if value > threshold-critical, 0 = critical if value != threshold-critical). A zero value disables warnings.",
-			Value:     &plugin.ThresholdDirection,
 		},
 		&sensu.PluginConfigOption[string]{
 			Path:      "label-selector",
@@ -108,44 +83,48 @@ func checkArgs(event *types.Event) (int, error) {
 }
 
 func executeCheck(event *types.Event) (int, error) {
-	fmt.Printf("ResourceKind: %s\n", plugin.ResourceKind)
-	fmt.Printf("Namespace: %s\n", plugin.Namespace)
-	fmt.Printf("LabelSelector: %s\n", plugin.LabelSelector)
-	fmt.Printf("FieldSelector: %s\n", plugin.FieldSelector)
-	fmt.Printf("ThresholdCritical: %d\n", plugin.ThresholdCritical)
-	fmt.Printf("ThresholdWarning: %d\n", plugin.ThresholdWarning)
-	fmt.Printf("ThresholdDirection: %d\n", plugin.ThresholdDirection)
-
-	amount, err := getNumResources(plugin.Namespace, plugin.ResourceKind, metav1.ListOptions{LabelSelector: plugin.LabelSelector, FieldSelector: plugin.FieldSelector})
+	resources, err := getResources(plugin.Namespace, plugin.ResourceKind, metav1.ListOptions{LabelSelector: plugin.LabelSelector, FieldSelector: plugin.FieldSelector})
 	if err != nil {
 		return sensu.CheckStateCritical, err
 	}
-	fmt.Printf("AmountResourcesFound: %d\n", amount)
 
-	responseCode, err := pkg.GetResponseCodeFromThresholds(amount, plugin.ThresholdCritical, plugin.ThresholdWarning, plugin.ThresholdDirection)
-	if err != nil {
-		return sensu.CheckStateCritical, err
-	}
-	fmt.Printf("Result: %d\n", responseCode)
+	metrics := extractMetrics(plugin.ResourceKind, resources)
+	pkg.PrintMetrics(metrics)
 
-	return responseCode, nil
+	return sensu.CheckStateOK, nil
 }
 
-func getNumResources(namespace string, resourcekind string, opts metav1.ListOptions) (int, error) {
+func getResources(namespace string, resourcekind string, opts metav1.ListOptions) ([]unstructured.Unstructured, error) {
 	api_client, err := pkg.GetKubeApiClient()
 	if err != nil {
-		return -1, err
+		return []unstructured.Unstructured{}, err
 	}
 
 	mapping, err := pkg.GetResourceMapping(resourcekind)
 	if err != nil {
-		return -1, err
+		return []unstructured.Unstructured{}, err
 	}
 
 	list, err := api_client.Resource(mapping.Resource).Namespace(namespace).List(context.TODO(), opts)
 	if err != nil {
-		return -1, err
+		return []unstructured.Unstructured{}, err
 	}
 
-	return len(list.Items), nil
+	return list.Items, nil
+}
+
+func extractMetrics(resourcekind string, resourceslist []unstructured.Unstructured) []*dto.MetricFamily {
+	metrics := make([]*dto.MetricFamily, 0, 7)
+	nowMS := time.Now().UnixMilli()
+
+	metrics = extractGenericMetrics(metrics, resourcekind, resourceslist, nowMS)
+
+	// TODO: Add more metrics (also specific to different resourcekinds)
+
+	return metrics
+}
+
+func extractGenericMetrics(metrics []*dto.MetricFamily, resourcekind string, resourceslist []unstructured.Unstructured, timestampMS int64) []*dto.MetricFamily {
+	metrics = pkg.AddNewMetric(metrics, "kubernetes_query_resources_total", uint64(len(resourceslist)), timestampMS)
+	return metrics
 }
