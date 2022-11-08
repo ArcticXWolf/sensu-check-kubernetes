@@ -54,12 +54,12 @@ Available Commands:
   version     Print the version number of this plugin
 
 Flags:
-  -a, --assertion string       Result of jq query to compare against
+  -e, --expression string      Expression for comparing result of query
   -h, --help                   help for sensu-check-kubernetes-query
   -n, --namespace string       Name of the namespace to query from (leave empty to check clusterwide)
   -q, --query string           Query on resource json in jq format
-  -t, --resource-kind string   Resource to query (e.g. Pod) (default "Pod")
-  -r, --resource-name string   Resource to query (e.g. Pod) (default "Pod")
+  -t, --resource-kind string   Resource kind to query (e.g. Pod) (default "Pod")
+  -r, --resource-name string   Resource name to query
 
 Use "sensu-check-kubernetes-query [command] --help" for more information about a command.
 ```
@@ -89,7 +89,7 @@ spec:
     --namespace "default"
     --resource-name "testdeployment"
     --query ".status.readyReplicas"
-    --assertion "1"
+    --expression "== 1"
   cron: "* * * * *"
   publish: true
   round_robin: true

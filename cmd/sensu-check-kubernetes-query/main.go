@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	pkg "github.com/ArcticXWolf/sensu-check-kubernetes/pkg"
+	"github.com/PaesslerAG/gval"
 	"github.com/itchyny/gojq"
 	"github.com/sensu/sensu-go/types"
 	"github.com/sensu/sensu-plugin-sdk/sensu"
@@ -16,13 +16,13 @@ import (
 // Config represents the check plugin config.
 type Config struct {
 	sensu.PluginConfig
-	Namespace       string
-	ResourceKind    string
-	ResourceName    string
-	LabelSelector   string
-	FieldSelector   string
-	Query           string
-	ResultAssertion string
+	Namespace     string
+	ResourceKind  string
+	ResourceName  string
+	LabelSelector string
+	FieldSelector string
+	Query         string
+	Expression    string
 }
 
 var (
@@ -50,7 +50,7 @@ var (
 			Argument:  "resource-kind",
 			Shorthand: "t",
 			Default:   "Pod",
-			Usage:     "Resource to query (e.g. Pod)",
+			Usage:     "Resource kind to query (e.g. Pod)",
 			Value:     &plugin.ResourceKind,
 		},
 		&sensu.PluginConfigOption[string]{
@@ -58,8 +58,8 @@ var (
 			Env:       "",
 			Argument:  "resource-name",
 			Shorthand: "r",
-			Default:   "Pod",
-			Usage:     "Resource to query (e.g. Pod)",
+			Default:   "",
+			Usage:     "Resource name to query",
 			Value:     &plugin.ResourceName,
 		},
 		&sensu.PluginConfigOption[string]{
@@ -72,13 +72,13 @@ var (
 			Value:     &plugin.Query,
 		},
 		&sensu.PluginConfigOption[string]{
-			Path:      "assertion",
+			Path:      "expression",
 			Env:       "",
-			Argument:  "assertion",
-			Shorthand: "a",
+			Argument:  "expression",
+			Shorthand: "e",
 			Default:   "",
-			Usage:     "Result of jq query to compare against",
-			Value:     &plugin.ResultAssertion,
+			Usage:     "Expression for comparing result of query",
+			Value:     &plugin.Expression,
 		},
 	}
 )
@@ -100,40 +100,43 @@ func executeCheck(event *types.Event) (int, error) {
 
 	query, err := gojq.Parse(plugin.Query)
 	if err != nil {
+		fmt.Printf("failed to parse query %q, error: %v", plugin.Query, err)
 		return sensu.CheckStateCritical, err
 	}
 
-	iter := query.Run(result.Object)
+	code, err := gojq.Compile(query)
+	if err != nil {
+		fmt.Printf("failed to compile query %q, error: %v", plugin.Query, err)
+		return sensu.CheckStateCritical, nil
+	}
 
-	check := true
+	iter := code.Run(result.Object)
+
+	var value interface{}
 	for {
+		var ok bool
 		v, ok := iter.Next()
 		if !ok {
 			break
 		}
 
-		if err, ok := v.(error); ok {
-			fmt.Println(err)
-			break
-		}
-		marsh, err := json.Marshal(v)
-		if err != nil {
-			fmt.Println(err)
-			break
+		if _, ok := v.(error); ok {
+			continue
 		}
 
-		fmt.Printf("Found: %s\n", marsh)
-		fmt.Printf("Assertion against: %s\n", plugin.ResultAssertion)
-		if plugin.ResultAssertion != string(marsh) {
-			check = false
-		}
+		value = v
 	}
 
-	if check {
-		fmt.Println("Result: OK")
+	found, err := evaluateExpression(value, plugin.Expression)
+	if err != nil {
+		return sensu.CheckStateCritical, fmt.Errorf("error evaluating expression: %v", err)
+	}
+	if found {
+		fmt.Printf("%s OK:  The value %v found at %s matched with expression %q and returned true\n", plugin.PluginConfig.Name, value, plugin.Query, plugin.Expression)
 		return sensu.CheckStateOK, nil
 	}
-	fmt.Println("Result: Critical")
+
+	fmt.Printf("%s CRITICAL: The value %v found at %s did not match with expression %q and returned false\n", plugin.PluginConfig.Name, value, plugin.Query, plugin.Expression)
 	return sensu.CheckStateCritical, nil
 }
 
@@ -154,4 +157,12 @@ func getResource(namespace string, resourcekind string, resourcename string) (*u
 	}
 
 	return result, nil
+}
+
+func evaluateExpression(actualValue interface{}, expression string) (bool, error) {
+	evalResult, err := gval.Evaluate("value "+expression, map[string]interface{}{"value": actualValue})
+	if err != nil {
+		return false, err
+	}
+	return evalResult.(bool), nil
 }

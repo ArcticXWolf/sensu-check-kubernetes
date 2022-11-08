@@ -9,7 +9,11 @@ require (
 	k8s.io/client-go v0.25.2
 )
 
-require github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+require (
+	github.com/PaesslerAG/gval v1.2.1 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
+)
 
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
