@@ -89,6 +89,15 @@ func main() {
 }
 
 func checkArgs(event *types.Event) (int, error) {
+	if len(plugin.Query) == 0 {
+		return sensu.CheckStateCritical, fmt.Errorf("--query is required")
+	}
+	if len(plugin.Expression) == 0 {
+		return sensu.CheckStateCritical, fmt.Errorf("--expression is required")
+	}
+	if len(plugin.ResourceName) == 0 {
+		return sensu.CheckStateCritical, fmt.Errorf("--resource-name is required")
+	}
 	return sensu.CheckStateOK, nil
 }
 
